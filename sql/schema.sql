@@ -1,0 +1,10 @@
+-- Canonical schema is initialized by src.database.initialize.
+-- Foreign keys retain run scope and resolution events never mutate results.
+CREATE TABLE reconciliation_runs(run_id TEXT PRIMARY KEY, created_at TEXT NOT NULL, source_a_name TEXT, source_b_name TEXT, config_json TEXT NOT NULL, summary_json TEXT NOT NULL, processing_status TEXT NOT NULL DEFAULT 'completed');
+CREATE TABLE source_transactions(source_id INTEGER PRIMARY KEY, run_id TEXT NOT NULL REFERENCES reconciliation_runs(run_id), side TEXT NOT NULL, source_row INTEGER, transaction_id TEXT, transaction_date TEXT, settlement_date TEXT, amount REAL, currency TEXT, transaction_type TEXT, status TEXT, source_system TEXT, validation_errors TEXT);
+CREATE TABLE reconciliation_results(result_id INTEGER PRIMARY KEY, run_id TEXT NOT NULL REFERENCES reconciliation_runs(run_id), transaction_id TEXT, outcome TEXT NOT NULL, system_a_count INTEGER NOT NULL, system_b_count INTEGER NOT NULL, amount_a REAL, amount_b REAL, amount_difference REAL);
+CREATE TABLE exceptions(exception_id INTEGER PRIMARY KEY, run_id TEXT NOT NULL REFERENCES reconciliation_runs(run_id), transaction_id TEXT, issue_type TEXT NOT NULL, source_side TEXT, system_a_row INTEGER, system_b_row INTEGER, details TEXT NOT NULL, severity TEXT NOT NULL);
+CREATE TABLE exception_resolutions(resolution_id INTEGER PRIMARY KEY, exception_id INTEGER NOT NULL REFERENCES exceptions(exception_id), status TEXT NOT NULL, justification TEXT NOT NULL, changed_at TEXT NOT NULL);
+CREATE TABLE run_summaries(run_id TEXT PRIMARY KEY REFERENCES reconciliation_runs(run_id), summary_json TEXT NOT NULL);
+CREATE TABLE run_events(event_id INTEGER PRIMARY KEY, run_id TEXT NOT NULL REFERENCES reconciliation_runs(run_id), event_type TEXT NOT NULL, details TEXT NOT NULL, changed_at TEXT NOT NULL);
+CREATE TABLE manual_match_decisions(decision_id INTEGER PRIMARY KEY, run_id TEXT NOT NULL REFERENCES reconciliation_runs(run_id), transaction_id TEXT, system_a_row INTEGER NOT NULL, system_b_row INTEGER NOT NULL, decision TEXT NOT NULL CHECK(decision IN ('confirmed','rejected')), justification TEXT NOT NULL, changed_at TEXT NOT NULL);
